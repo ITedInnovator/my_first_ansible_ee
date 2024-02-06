@@ -1,0 +1,76 @@
+- name: Gather and print facts plus updates
+  hosts: all
+  remote_user: anthony
+  become: true
+  gather_facts: true
+  tasks:
+
+  - name: Print facts
+    ansible.builtin.debug:
+      var: ansible_facts
+  - name: Update all packages
+    ansible.builtin.apt:
+      update_cache: yes
+      upgrade: safe
+
+- name: Install docker on ubuntu
+  hosts: ubuntu
+  remote_user: anthony
+  become: true
+  tasks:
+  - name: Install docker signing key
+    ansible.builtin.apt_key:
+      url: https://download.docker.com/linux/ubuntu/gpg
+      state: present
+  - name: Make sure docker dependencies installed
+    ansible.builtin.apt:
+      name: 
+      - iptables
+      - ca-certificates
+      - curl
+      - python3
+      - python3-pip
+      state: latest
+      update_cache: yes
+  - name: Add Docker Repository
+    apt_repository:
+      repo: deb https://download.docker.com/linux/ubuntu focal stable
+      state: present
+  - name: Install Docker itself
+    ansible.builtin.apt:
+      name:
+      - docker-ce
+      - docker-ce-cli
+      - containerd.io
+      - docker-compose-plugin
+      - docker-buildx-plugin
+- name: Run Docker hello world container
+  hosts: ubuntu
+  remote_user: anthony
+  tasks:
+  - name: Install docker python module
+    ansible.builtin.pip:
+      name: 
+      - docker
+      - paramiko
+      state: present
+  - name: Add user to docker group
+    ansible.builtin.user:
+      name: anthony
+      groups: docker
+      append: yes
+  - name: Run hello world web container
+    community.docker.docker_container:
+      name: web
+      image: httpd
+      state: started
+      ports: 8000:80
+      pull: yes
+  - name: Run asp.net sample app
+    community.docker.docker_container:
+      name: dotnet_sample
+      image: mcr.microsoft.com/dotnet/samples:aspnetapp
+      state: started
+      ports: 8001:8080
+      pull: yes
+
